@@ -54,6 +54,8 @@
   .tab .pill{margin-left:6px}
 
   main{padding-top:20px;padding-bottom:70px}
+  /* main sólo recibe foco programático (enlace de salto): sin anillo */
+  main:focus,main:focus-visible{outline:none}
   .cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(320px,390px);gap:16px;align-items:start}
   .cols3{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;align-items:start}
   .pila{display:flex;flex-direction:column;gap:16px;min-width:0}
@@ -170,14 +172,16 @@
   .prev-q{border:0;padding:12px 0 0;margin:0}
   .prev-enun{font-size:13.5px;font-weight:600;margin-bottom:6px}
   .prev-q legend{font-size:13.5px;font-weight:600;padding:0;margin-bottom:6px}
+  .prev-q + .prev-q{border-top:1px solid var(--border);margin-top:12px}
   .prev-q.error legend{color:var(--bad)}
   .opt{display:flex;gap:8px;align-items:flex-start;font-size:13.5px;padding:3px 0;cursor:pointer}
   .opt input{margin-top:3px;accent-color:var(--accent)}
   .escala{display:flex;gap:6px;flex-wrap:wrap}
-  .escala-op{display:flex;flex-direction:column;align-items:center;gap:2px;border:1px solid var(--border);
-    border-radius:8px;padding:5px 10px;font-size:12.5px;cursor:pointer;background:var(--surface)}
+  .escala-op{display:flex;align-items:center;gap:6px;border:1px solid var(--border);
+    border-radius:8px;padding:6px 12px;font-size:13px;cursor:pointer;background:var(--surface)}
+  .escala-op input{accent-color:var(--accent);margin:0}
   .escala-op:has(input:checked){border-color:var(--accent);background:var(--accent-2);color:var(--accent);font-weight:700}
-  .escala-ext{display:flex;justify-content:space-between;font-size:11.5px;color:var(--muted);margin-top:4px;max-width:280px}
+  .escala-ext{display:flex;flex-wrap:wrap;gap:4px 18px;font-size:11.5px;color:var(--muted);margin-top:6px}
   .msg-error{color:var(--bad);font-size:12px;margin-top:4px}
 
   .identidad{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px 18px;
@@ -707,7 +711,7 @@
 
   function extremosEscala(p) {
     if (!p.escalaMin && !p.escalaMax) return '';
-    return `<div class="escala-ext"><span>1 ${esc(p.escalaMin)}</span><span>5 ${esc(p.escalaMax)}</span></div>`;
+    return `<div class="escala-ext"><span>1 · ${esc(p.escalaMin)}</span><span>5 · ${esc(p.escalaMax)}</span></div>`;
   }
 
   function previewHTML(e) {
@@ -726,14 +730,14 @@
     const req = p.obligatoria ? ' <span class="req" aria-label="obligatoria">*</span>' : '';
     let control = '';
     if (p.tipo === 'texto') {
-      control = '<textarea class="input" rows="2" disabled></textarea>';
+      control = `<textarea class="input" rows="2" id="pv-t-${p.id}" disabled></textarea>`;
     } else if (p.tipo === 'escala') {
       control = `<div class="escala">${[1, 2, 3, 4, 5].map(n =>
-        `<label class="escala-op"><input type="radio" disabled> <span>${n}</span></label>`).join('')}</div>`
+        `<label class="escala-op"><input type="radio" name="pv-${p.id}" disabled> <span>${n}</span></label>`).join('')}</div>`
         + extremosEscala(p);
     } else {
       control = p.opciones.map(o => `<label class="opt">
-        <input type="${p.tipo === 'unica' ? 'radio' : 'checkbox'}" disabled>
+        <input type="${p.tipo === 'unica' ? 'radio' : 'checkbox'}" name="pv-${p.id}" disabled>
         <span>${esc(o || '(opción sin texto)')}</span></label>`).join('');
     }
     return `<div class="prev-q">
@@ -901,7 +905,7 @@
               <button class="btn sec" onclick="App.ir('asignar')">Revisar destinatarios</button>
             </div>`}
         </section>
-        <section class="card" id="zona-cola">${colaHTML(e)}</section>
+        ${e.publicada ? `<section class="card" id="zona-cola">${colaHTML(e)}</section>` : ''}
       </div>
 
       <aside class="card">
@@ -1049,7 +1053,7 @@
           onchange="App.respuesta('${p.id}', this.value, true)"> <span>${esc(o)}</span></label>`).join('');
     } else {
       control = p.opciones.map(o => `<label class="opt">
-        <input type="checkbox" value="${esc(o)}" ${Array.isArray(v) && v.includes(o) ? 'checked' : ''}
+        <input type="checkbox" name="${name}" value="${esc(o)}" ${Array.isArray(v) && v.includes(o) ? 'checked' : ''}
           onchange="App.multiple('${p.id}', this.value, this.checked)"> <span>${esc(o)}</span></label>`).join('');
     }
 
