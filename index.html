@@ -1,0 +1,1690 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Encuestas internas — prototipo</title>
+<style>
+  :root{
+    color-scheme: light dark;
+    --bg:#f4f6f8; --surface:#ffffff; --surface-2:#eef1f5; --border:#dde2e8;
+    --text:#161a1f; --muted:#5d6b7a; --accent:#1f5fbf; --accent-2:#e7effc;
+    --ok:#166534; --ok-bg:#e6f4ea; --warn:#8a5300; --warn-bg:#fdf1dc; --bad:#a1181b; --bad-bg:#fdeaea;
+    --radio:12px; --sombra:0 1px 2px rgba(16,24,40,.05);
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#111418; --surface:#191e24; --surface-2:#222931; --border:#2c343d;
+      --text:#e6eaef; --muted:#9aa6b4; --accent:#7ba6ee; --accent-2:#1b2a42;
+      --ok:#7ed9a2; --ok-bg:#15301f; --warn:#f0c27a; --warn-bg:#33280f; --bad:#f5a3a3; --bad-bg:#3a1c1c;
+    }
+  }
+
+  *,*::before,*::after{box-sizing:border-box}
+  body{
+    margin:0;background:var(--bg);color:var(--text);
+    font:15px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    -webkit-text-size-adjust:100%;
+  }
+  h1,h2,h3,p,ul,dl,dd,figure{margin:0}
+  h1{font-size:20px;font-weight:650;letter-spacing:-.01em}
+  h2{font-size:15px;font-weight:650;margin-bottom:10px}
+  h3{font-size:14px;font-weight:650}
+  a{color:var(--accent)}
+  :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+  .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+  .skip{position:absolute;left:8px;top:-40px;background:var(--surface);padding:8px 12px;border-radius:8px;z-index:20}
+  .skip:focus{top:8px}
+
+  /* banner del prototipo */
+  .proto{background:var(--warn-bg);color:var(--warn);border-bottom:1px solid var(--border);
+    font-size:12.5px;text-align:center;padding:6px 16px}
+
+  /* cabecera */
+  .wrap{max-width:1200px;margin:0 auto;padding:0 20px}
+  .cabecera{background:var(--surface);border-bottom:1px solid var(--border)}
+  .cab-inner{display:flex;gap:16px;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;padding-top:14px;padding-bottom:10px}
+  .rol-caja{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .rol-caja label{font-size:12.5px;color:var(--muted);font-weight:600}
+  .tabs{display:flex;gap:2px;overflow-x:auto;scrollbar-width:thin}
+  .tab{border:0;background:none;color:var(--muted);font:inherit;font-size:14px;padding:10px 12px 9px;
+    border-bottom:2px solid transparent;cursor:pointer;white-space:nowrap}
+  .tab:hover{color:var(--text)}
+  .tab.activa{color:var(--text);border-bottom-color:var(--accent);font-weight:650}
+  .tab .pill{margin-left:6px}
+
+  main{padding-top:20px;padding-bottom:70px}
+  .cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(320px,390px);gap:16px;align-items:start}
+  .cols3{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;align-items:start}
+  .pila{display:flex;flex-direction:column;gap:16px;min-width:0}
+  @media (max-width:920px){ .cols{grid-template-columns:1fr} }
+  .sticky{position:sticky;top:16px}
+  @media (max-width:920px){ .sticky{position:static} }
+
+  /* tarjetas */
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radio);padding:16px;box-shadow:var(--sombra);min-width:0}
+  .card + .card{margin-top:0}
+  .mt{margin-top:22px}
+  .chico{font-size:12.5px}
+  .muted{color:var(--muted)}
+  .vacio{color:var(--muted);font-size:13px}
+
+  /* formularios */
+  .campo{display:flex;flex-direction:column;gap:4px;margin-bottom:12px}
+  .campo label,.label{font-size:12.5px;font-weight:600;color:var(--muted)}
+  .input{
+    font:inherit;font-size:14px;color:var(--text);background:var(--surface);
+    border:1px solid var(--border);border-radius:8px;padding:7px 9px;width:100%;min-width:0;
+  }
+  .input.chico{font-size:13px;padding:4px 6px;width:auto}
+  textarea.input{resize:vertical;min-height:64px}
+  select.input{cursor:pointer}
+  .dos{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media (max-width:520px){ .dos{grid-template-columns:1fr} }
+
+  /* botones */
+  .btn{font:inherit;font-size:14px;font-weight:600;background:var(--accent);color:#fff;border:1px solid transparent;
+    border-radius:8px;padding:8px 14px;cursor:pointer}
+  .btn:hover{filter:brightness(1.08)}
+  .btn:disabled{opacity:.5;cursor:not-allowed;filter:none}
+  .btn.sec{background:var(--surface);color:var(--text);border-color:var(--border)}
+  .btn.sec:hover{background:var(--surface-2)}
+  .btn-link{font:inherit;font-size:13px;background:none;border:0;color:var(--accent);cursor:pointer;padding:4px 2px;text-decoration:underline;text-underline-offset:2px}
+  .btn-link:disabled{color:var(--muted);text-decoration:none;cursor:not-allowed}
+  .icon{font:inherit;font-size:13px;line-height:1;background:var(--surface);border:1px solid var(--border);color:var(--text);
+    border-radius:7px;width:28px;height:28px;cursor:pointer;display:inline-grid;place-items:center;padding:0}
+  .icon:hover{background:var(--surface-2)}
+  .icon:disabled{opacity:.4;cursor:not-allowed}
+  .icon.peligro{color:var(--bad)}
+  .acciones{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:14px}
+  .acciones.fin{justify-content:flex-end;border-top:1px solid var(--border);padding-top:14px}
+
+  /* constructor de preguntas */
+  .q{border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:12px;background:var(--surface)}
+  .q-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+  .q-num{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:999px;
+    background:var(--accent-2);color:var(--accent);font-size:12px;font-weight:700}
+  .q-acc{margin-left:auto;display:flex;gap:4px}
+  .op-fila{display:flex;gap:6px;align-items:center;margin-bottom:6px}
+  .chk{display:inline-flex;align-items:center;gap:6px;font-size:13px;cursor:pointer}
+  .chks{display:flex;flex-wrap:wrap;gap:8px 18px}
+  .req{color:var(--bad);font-weight:700}
+
+  /* badges, pills y avisos */
+  .pill{display:inline-block;min-width:22px;text-align:center;background:var(--accent-2);color:var(--accent);
+    border-radius:999px;padding:1px 8px;font-size:12px;font-weight:700}
+  .badge{display:inline-block;font-size:11.5px;font-weight:600;border-radius:999px;padding:2px 8px;
+    background:var(--surface-2);color:var(--muted);white-space:nowrap}
+  .badge.ok{background:var(--ok-bg);color:var(--ok)}
+  .badge.warn{background:var(--warn-bg);color:var(--warn)}
+  .badge.bad{background:var(--bad-bg);color:var(--bad)}
+  .aviso{border-radius:9px;padding:10px 12px;font-size:13px;margin-top:12px;border:1px solid transparent}
+  .aviso ul{margin:6px 0 0;padding-left:20px}
+  .aviso.warn{background:var(--warn-bg);color:var(--warn);border-color:color-mix(in srgb,var(--warn) 25%,transparent)}
+  .aviso.ok{background:var(--ok-bg);color:var(--ok)}
+  .aviso.bad{background:var(--bad-bg);color:var(--bad)}
+
+  /* listas */
+  .lista{list-style:none;padding:0;margin:0}
+  .lista > li{display:flex;gap:10px;align-items:center;justify-content:space-between;
+    padding:8px 0;border-bottom:1px solid var(--border);flex-wrap:wrap}
+  .lista > li:last-child{border-bottom:0}
+  .lista .emp-datos{display:flex;flex-direction:column;min-width:0}
+  .lista strong{font-weight:600}
+  .lista-emps{max-height:430px;overflow:auto;margin-top:10px;border-top:1px solid var(--border)}
+  .emp-fila{gap:8px}
+  .emp-fila .seg{margin-left:auto}
+  .mas{margin-top:10px;font-size:13px}
+  .mas summary{cursor:pointer;color:var(--accent);font-size:12.5px;padding:4px 0}
+
+  /* selector segmentado de asignación */
+  .seg{display:inline-flex;border:1px solid var(--border);border-radius:8px;overflow:hidden;background:var(--surface)}
+  .seg button{font:inherit;font-size:11.5px;border:0;background:none;color:var(--muted);padding:4px 8px;cursor:pointer}
+  .seg button + button{border-left:1px solid var(--border)}
+  .seg button.on{background:var(--accent-2);color:var(--accent);font-weight:700}
+
+  /* métricas y progreso */
+  .stats{display:flex;gap:26px;flex-wrap:wrap;margin:14px 0 12px}
+  .stat{display:flex;flex-direction:column}
+  .stat-num{font-size:24px;font-weight:650;line-height:1.1;font-variant-numeric:tabular-nums}
+  .stat-num.ok{color:var(--ok)} .stat-num.warn{color:var(--warn)}
+  .prog{height:8px;background:var(--surface-2);border-radius:999px;overflow:hidden}
+  .prog.grande{height:12px}
+  .prog > span{display:block;height:100%;background:var(--accent);border-radius:999px;transition:width .25s ease}
+  .prog > span.ok{background:var(--ok)}
+
+  /* tablas */
+  .tabla{width:100%;border-collapse:collapse;font-size:13.5px}
+  .tabla caption{text-align:left;font-size:13px;font-weight:650;padding-bottom:6px}
+  .tabla th,.tabla td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--border);vertical-align:middle}
+  .tabla th{font-size:12px;text-transform:none;color:var(--muted);font-weight:600}
+  .tabla td.num,.tabla th.num{text-align:right;font-variant-numeric:tabular-nums}
+  .tabla tfoot td{font-weight:650}
+  .tabla .mini{height:6px;width:64px;background:var(--surface-2);border-radius:999px;overflow:hidden;display:inline-block;vertical-align:middle}
+  .tabla .mini > span{display:block;height:100%;background:var(--ok)}
+
+  /* vista previa / vista del empleado */
+  .prev{border:1px dashed var(--border);border-radius:10px;padding:14px;background:var(--surface-2)}
+  .prev-marca{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+  .prev h3{font-size:16px;margin-bottom:4px}
+  .prev-q{border:0;padding:12px 0 0;margin:0}
+  .prev-enun{font-size:13.5px;font-weight:600;margin-bottom:6px}
+  .prev-q legend{font-size:13.5px;font-weight:600;padding:0;margin-bottom:6px}
+  .prev-q.error legend{color:var(--bad)}
+  .opt{display:flex;gap:8px;align-items:flex-start;font-size:13.5px;padding:3px 0;cursor:pointer}
+  .opt input{margin-top:3px;accent-color:var(--accent)}
+  .escala{display:flex;gap:6px;flex-wrap:wrap}
+  .escala-op{display:flex;flex-direction:column;align-items:center;gap:2px;border:1px solid var(--border);
+    border-radius:8px;padding:5px 10px;font-size:12.5px;cursor:pointer;background:var(--surface)}
+  .escala-op:has(input:checked){border-color:var(--accent);background:var(--accent-2);color:var(--accent);font-weight:700}
+  .escala-ext{display:flex;justify-content:space-between;font-size:11.5px;color:var(--muted);margin-top:4px;max-width:280px}
+  .msg-error{color:var(--bad);font-size:12px;margin-top:4px}
+
+  .identidad{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px 18px;
+    background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:12px;margin:14px 0}
+  .identidad dt{font-size:11.5px;color:var(--muted);font-weight:600}
+  .identidad dd{font-size:13.5px;font-weight:600;margin:0}
+
+  /* correo */
+  .correo{border:1px solid var(--border);border-radius:10px;padding:14px;font-size:13.5px;background:var(--surface)}
+  .correo p{margin-bottom:8px}
+  .correo hr{border:0;border-top:1px solid var(--border);margin:10px 0}
+  .enlace-falso{color:var(--accent);text-decoration:underline;cursor:default}
+  .fila-encuesta{display:flex;gap:14px;align-items:flex-end;flex-wrap:wrap}
+  .fila-encuesta .campo{margin-bottom:0;min-width:260px;flex:1}
+  .filtros{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;margin-bottom:6px}
+  .filtros .campo{margin-bottom:0;min-width:180px}
+  .dos-listas{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media (max-width:760px){ .dos-listas{grid-template-columns:1fr} }
+  .res-q{border-top:1px solid var(--border);padding-top:12px;margin-top:12px}
+  .res-q:first-of-type{border-top:0;padding-top:0;margin-top:0}
+  .barra-fila{display:grid;grid-template-columns:minmax(120px,1.2fr) 3fr 42px;gap:8px;align-items:center;font-size:13px;margin:4px 0}
+  .barra{height:8px;background:var(--surface-2);border-radius:999px;overflow:hidden}
+  .barra > span{display:block;height:100%;background:var(--accent)}
+  .barra-fila .num{text-align:right;font-variant-numeric:tabular-nums;color:var(--muted)}
+
+  /* toast */
+  .toast{position:fixed;left:50%;bottom:22px;transform:translate(-50%,20px);opacity:0;pointer-events:none;
+    background:var(--text);color:var(--bg);font-size:13.5px;font-weight:600;padding:9px 16px;border-radius:999px;
+    transition:opacity .18s ease,transform .18s ease;max-width:calc(100vw - 32px);z-index:30}
+  .toast.show{opacity:1;transform:translate(-50%,0)}
+
+  @media print{ .tabs,.rol-caja,.proto,.skip{display:none} }
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Ir al contenido</a>
+<div class="proto" role="note">Prototipo para validar la idea: datos de ejemplo, sin servidor</div>
+
+<header class="cabecera">
+  <div class="wrap cab-inner">
+    <div>
+      <h1>Encuestas internas</h1>
+      <p class="muted chico">Encuestas nominales ligadas a la plantilla de empleados</p>
+    </div>
+    <div class="rol-caja">
+      <label for="rol">Ver como</label>
+      <select id="rol" class="input chico" onchange="App.cambiarRol(this.value)"></select>
+      <button type="button" class="btn-link" onclick="App.reiniciar()">Reiniciar datos de ejemplo</button>
+    </div>
+  </div>
+  <div class="wrap">
+    <nav class="tabs" id="tabs" aria-label="Pantallas del prototipo"></nav>
+  </div>
+</header>
+
+<main id="main" class="wrap" tabindex="-1"></main>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ------------------------------------------------------------------
+     Prototipo de encuestas internas. Todo vive en memoria y se respalda
+     en localStorage cuando el navegador lo permite. No hay servidor,
+     ni red, ni dependencias.
+     ------------------------------------------------------------------ */
+
+  // ---------- Plantilla de empleados (datos de ejemplo) ----------
+  const SUCURSALES = ['Altabrisa', 'Montejo', 'Campeche'];
+  const DEPARTAMENTOS = ['Ventas Nuevos', 'Seminuevos', 'Servicio', 'Refacciones', 'Administración'];
+
+  const PLANTILLA = [
+    { id: 'A001', nombre: 'Carlos Mendoza', sucursal: 'Altabrisa', depto: 'Ventas Nuevos', puesto: 'Gerente de Ventas' },
+    { id: 'A002', nombre: 'Laura Pacheco', sucursal: 'Altabrisa', depto: 'Ventas Nuevos', puesto: 'Asesora de Ventas' },
+    { id: 'A003', nombre: 'Miguel Ángel Tun', sucursal: 'Altabrisa', depto: 'Ventas Nuevos', puesto: 'Asesor de Ventas' },
+    { id: 'A004', nombre: 'Ana Sofía Canul', sucursal: 'Altabrisa', depto: 'Seminuevos', puesto: 'Gerente de Seminuevos' },
+    { id: 'A005', nombre: 'Jorge Cetina', sucursal: 'Altabrisa', depto: 'Seminuevos', puesto: 'Asesor de Seminuevos' },
+    { id: 'A006', nombre: 'Pedro Uc', sucursal: 'Altabrisa', depto: 'Servicio', puesto: 'Jefe de Servicio' },
+    { id: 'A007', nombre: 'Rita Alcocer', sucursal: 'Altabrisa', depto: 'Servicio', puesto: 'Asesora de Servicio' },
+    { id: 'A008', nombre: 'Mario Pech', sucursal: 'Altabrisa', depto: 'Servicio', puesto: 'Técnico' },
+    { id: 'A009', nombre: 'Diana Escalante', sucursal: 'Altabrisa', depto: 'Refacciones', puesto: 'Jefa de Refacciones' },
+    { id: 'A010', nombre: 'Luis Baeza', sucursal: 'Altabrisa', depto: 'Refacciones', puesto: 'Almacenista' },
+    { id: 'A011', nombre: 'Gabriela Pineda', sucursal: 'Altabrisa', depto: 'Administración', puesto: 'Gerente de Administración' },
+    { id: 'A012', nombre: 'Rubén Sosa', sucursal: 'Altabrisa', depto: 'Administración', puesto: 'Auxiliar Administrativo' },
+    { id: 'A013', nombre: 'Patricia Villanueva', sucursal: 'Altabrisa', depto: 'Administración', puesto: 'Directora de Sucursal' },
+
+    { id: 'M001', nombre: 'Fernando Moguel', sucursal: 'Montejo', depto: 'Ventas Nuevos', puesto: 'Gerente de Ventas' },
+    { id: 'M002', nombre: 'Karla Ramírez', sucursal: 'Montejo', depto: 'Ventas Nuevos', puesto: 'Asesora de Ventas' },
+    { id: 'M003', nombre: 'Hugo Cámara', sucursal: 'Montejo', depto: 'Servicio', puesto: 'Jefe de Servicio' },
+    { id: 'M004', nombre: 'Silvia Escamilla', sucursal: 'Montejo', depto: 'Servicio', puesto: 'Técnica' },
+    { id: 'M005', nombre: 'Óscar Balam', sucursal: 'Montejo', depto: 'Refacciones', puesto: 'Jefe de Refacciones' },
+    { id: 'M006', nombre: 'Norma Chi', sucursal: 'Montejo', depto: 'Refacciones', puesto: 'Almacenista' },
+    { id: 'M007', nombre: 'Alberto Loría', sucursal: 'Montejo', depto: 'Administración', puesto: 'Gerente de Administración' },
+    { id: 'M008', nombre: 'Verónica Solís', sucursal: 'Montejo', depto: 'Administración', puesto: 'Analista de Sistemas' },
+    { id: 'M009', nombre: 'Ricardo Fuentes', sucursal: 'Montejo', depto: 'Administración', puesto: 'Director de Sucursal' },
+
+    { id: 'C001', nombre: 'Elena Vázquez', sucursal: 'Campeche', depto: 'Ventas Nuevos', puesto: 'Gerente de Ventas' },
+    { id: 'C002', nombre: 'Juan Pablo Dzul', sucursal: 'Campeche', depto: 'Ventas Nuevos', puesto: 'Asesor de Ventas' },
+    { id: 'C003', nombre: 'Marisol Aguilar', sucursal: 'Campeche', depto: 'Seminuevos', puesto: 'Gerente de Seminuevos' },
+    { id: 'C004', nombre: 'Víctor Peña', sucursal: 'Campeche', depto: 'Seminuevos', puesto: 'Asesor de Seminuevos' },
+    { id: 'C005', nombre: 'Teresa Noh', sucursal: 'Campeche', depto: 'Servicio', puesto: 'Jefe de Servicio' },
+    { id: 'C006', nombre: 'Ramón Caamal', sucursal: 'Campeche', depto: 'Servicio', puesto: 'Técnico' },
+    { id: 'C007', nombre: 'Lucía Herrera', sucursal: 'Campeche', depto: 'Administración', puesto: 'Gerente de Administración' },
+    { id: 'C008', nombre: 'Diego Pérez', sucursal: 'Campeche', depto: 'Administración', puesto: 'Auxiliar Administrativo' },
+    { id: 'C009', nombre: 'Andrés Escobar', sucursal: 'Campeche', depto: 'Administración', puesto: 'Director de Sucursal' }
+  ];
+
+  // El correo se deriva del número de empleado: en el prototipo no importa que sea real.
+  const EMPLEADOS = PLANTILLA.map(e => Object.assign({}, e, {
+    email: e.id.toLowerCase() + '@example.com'
+  }));
+
+  // Qué departamentos existen en cada sucursal (se deriva de la plantilla).
+  const SUC_DEP = {};
+  SUCURSALES.forEach(s => {
+    SUC_DEP[s] = DEPARTAMENTOS.filter(d => PLANTILLA.some(e => e.sucursal === s && e.depto === d));
+  });
+
+  // ---------- Utilidades ----------
+  const porId = id => EMPLEADOS.find(e => e.id === id) || null;
+  const nombreDe = id => (porId(id) || { nombre: '—' }).nombre;
+  const esJefe = e => /director|gerente/i.test(e.puesto);
+
+  const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+  ));
+
+  const ymd = x => [x.getFullYear(), String(x.getMonth() + 1).padStart(2, '0'), String(x.getDate()).padStart(2, '0')].join('-');
+  const fechaDias = dias => { const x = new Date(); x.setDate(x.getDate() + dias); return ymd(x); };
+  const ahoraISO = () => new Date().toISOString();
+  const haceDias = dias => { const x = new Date(); x.setDate(x.getDate() - dias); return x.toISOString(); };
+
+  const fecha = iso => {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    if (isNaN(d)) return '—';
+    return d.toLocaleString('es-MX', { dateStyle: 'medium', timeStyle: 'short' });
+  };
+  const fechaLarga = v => {
+    if (!v) return 'sin definir';
+    // Se interpreta al mediodía para que el huso horario no corra el día.
+    const d = new Date(v + 'T12:00:00');
+    return isNaN(d) ? v : d.toLocaleDateString('es-MX', { dateStyle: 'long' });
+  };
+  const slug = s => String(s || 'encuesta').toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
+  const nuevoId = () => 'e' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+  const nuevoPreguntaId = () => 'p' + Math.random().toString(36).slice(2, 9);
+  const hash = s => String(s).split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+
+  const toast = msg => {
+    const el = document.getElementById('toast');
+    if (!el) return;
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(toast._t);
+    toast._t = setTimeout(() => el.classList.remove('show'), 2800);
+  };
+
+  // ---------- Estado ----------
+  const CLAVE = 'encuestas-prototipo-v1';
+
+  const st = {
+    rol: 'admin',          // 'admin' o el número de empleado
+    tab: 'crear',
+    editId: '',            // encuesta en edición / recién publicada
+    panelId: '',           // encuesta elegida en el panel
+    respAbierta: '',       // encuesta que el empleado está respondiendo
+    temp: {},              // respuestas en curso {preguntaId: valor}
+    errores: [],           // preguntaIds obligatorias sin responder
+    busqueda: '',          // buscador de empleados en Asignar
+    filtroSucursal: '',
+    filtroDepto: '',
+    encuestas: []
+  };
+
+  const encuesta = id => st.encuestas.find(e => e.id === id) || null;
+  const activa = () => encuesta(st.editId) || st.encuestas[0] || null;
+  const publicadas = () => st.encuestas.filter(e => e.publicada);
+
+  function guardar() {
+    try { localStorage.setItem(CLAVE, JSON.stringify(st)); } catch (e) { /* modo privado o cuota: seguimos en memoria */ }
+  }
+
+  function cargar() {
+    try {
+      const raw = localStorage.getItem(CLAVE);
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) { return null; }
+  }
+
+  // ---------- Destinatarios ----------
+  // Regla de precedencia: incluir/excluir a mano manda sobre segmento y sobre el atajo de puestos.
+  function estadoEmpleado(emp, f) {
+    if (f.incluir.includes(emp.id)) return { incluido: true, motivo: 'incluido a mano' };
+    if (f.excluir.includes(emp.id)) return { incluido: false, motivo: 'excluido a mano' };
+    if (f.excluirJefes && esJefe(emp)) return { incluido: false, motivo: 'excluido por puesto' };
+    const sucOk = !f.sucursales.length || f.sucursales.includes(emp.sucursal);
+    const depOk = !f.departamentos.length || f.departamentos.includes(emp.depto);
+    return sucOk && depOk
+      ? { incluido: true, motivo: 'por segmento' }
+      : { incluido: false, motivo: 'fuera del segmento' };
+  }
+
+  function calcularDestinatarios(f) {
+    const out = [];
+    EMPLEADOS.forEach(emp => {
+      const s = estadoEmpleado(emp, f);
+      if (s.incluido) out.push({ empleadoId: emp.id, motivo: s.motivo });
+    });
+    return out;
+  }
+
+  const departamentosDisponibles = sucursales => sucursales.length
+    ? DEPARTAMENTOS.filter(d => sucursales.some(s => SUC_DEP[s].includes(d)))
+    : DEPARTAMENTOS.slice();
+
+  function textoCombinaciones(sucursales) {
+    if (!sucursales.length) return 'Los cinco departamentos existen en al menos una sucursal.';
+    const faltantes = [];
+    sucursales.forEach(s => {
+      const sin = DEPARTAMENTOS.filter(d => !SUC_DEP[s].includes(d));
+      if (sin.length) faltantes.push(s + ' no tiene ' + sin.join(' ni '));
+    });
+    return faltantes.join('. ') + '.';
+  }
+
+  // ---------- Validaciones ----------
+  function problemas(e) {
+    const out = [];
+    if (!e.titulo.trim()) out.push('La encuesta necesita un título.');
+    if (!e.fechaLimite) out.push('Falta la fecha límite.');
+    if (!e.preguntas.length) out.push('Agregá al menos una pregunta.');
+    e.preguntas.forEach((p, i) => {
+      if (!p.texto.trim()) out.push('La pregunta ' + (i + 1) + ' no tiene enunciado.');
+      if ((p.tipo === 'unica' || p.tipo === 'multiple') && p.opciones.filter(o => o.trim()).length < 2) {
+        out.push('La pregunta ' + (i + 1) + ' necesita al menos dos opciones.');
+      }
+    });
+    if (!calcularDestinatarios(e.filtros).length) out.push('No hay destinatarios: revisá la asignación.');
+    return out;
+  }
+
+  const respondida = v => Array.isArray(v) ? v.length > 0 : (v !== undefined && v !== null && String(v).trim() !== '');
+
+  // ---------- Datos de ejemplo ----------
+  function nuevaPregunta(tipo) {
+    return {
+      id: nuevoPreguntaId(),
+      tipo: tipo,
+      texto: '',
+      obligatoria: true,
+      opciones: (tipo === 'unica' || tipo === 'multiple') ? ['', ''] : [],
+      escalaMin: '',
+      escalaMax: ''
+    };
+  }
+
+  function datosEjemplo() {
+    // Encuesta 1: publicada, con respuestas cargadas para que el panel tenga algo que mostrar.
+    const clima = {
+      id: 'clima',
+      titulo: 'Clima laboral Q4 2026',
+      descripcion: 'Queremos saber cómo se siente el equipo y detectar oportunidades de mejora. La encuesta es nominal: sabemos quién respondió.',
+      fechaLimite: fechaDias(8),
+      preguntas: [
+        { id: 'clima-1', tipo: 'unica', texto: '¿Cómo calificas tu ambiente de trabajo?', obligatoria: true, opciones: ['Excelente', 'Bueno', 'Regular', 'Malo'], escalaMin: '', escalaMax: '' },
+        { id: 'clima-2', tipo: 'escala', texto: '¿Qué tan satisfecho estás con tu trabajo?', obligatoria: true, opciones: [], escalaMin: 'Nada satisfecho', escalaMax: 'Muy satisfecho' },
+        { id: 'clima-3', tipo: 'multiple', texto: '¿Qué beneficios usas hoy?', obligatoria: false, opciones: ['Seguro médico', 'Fondo de ahorro', 'Comedor', 'Transporte'], escalaMin: '', escalaMax: '' },
+        { id: 'clima-4', tipo: 'texto', texto: '¿Qué cambiarías para mejorar tu día a día?', obligatoria: false, opciones: [], escalaMin: '', escalaMax: '' }
+      ],
+      filtros: { sucursales: [], departamentos: [], incluir: [], excluir: [], excluirJefes: true },
+      publicada: true,
+      publicadaEn: haceDias(3),
+      destinatarios: [],
+      envios: {},
+      respuestas: {}
+    };
+    clima.destinatarios = calcularDestinatarios(clima.filtros);
+    clima.destinatarios.forEach(d => {
+      clima.envios[d.empleadoId] = { estado: 'enviado', intentos: 1, fecha: haceDias(3) };
+    });
+    clima.envios.M006 = { estado: 'fallido', intentos: 1, fecha: haceDias(3) };
+    clima.respuestas = {
+      A002: { fecha: haceDias(2), respuestas: { 'clima-1': 'Bueno', 'clima-2': 4, 'clima-3': ['Seguro médico', 'Fondo de ahorro'], 'clima-4': '' } },
+      A007: { fecha: haceDias(2), respuestas: { 'clima-1': 'Excelente', 'clima-2': 5, 'clima-3': ['Comedor'], 'clima-4': 'Más capacitación técnica para el equipo.' } },
+      A010: { fecha: haceDias(1), respuestas: { 'clima-1': 'Regular', 'clima-2': 3, 'clima-3': ['Seguro médico'], 'clima-4': 'Mejorar el equipo de cómputo del área.' } },
+      M002: { fecha: haceDias(1), respuestas: { 'clima-1': 'Bueno', 'clima-2': 4, 'clima-3': [], 'clima-4': 'Nada por ahora.' } },
+      M004: { fecha: haceDias(1), respuestas: { 'clima-1': 'Regular', 'clima-2': 2, 'clima-3': ['Transporte'], 'clima-4': 'Horarios un poco más flexibles.' } },
+      C002: { fecha: ahoraISO(), respuestas: { 'clima-1': 'Excelente', 'clima-2': 4, 'clima-3': ['Seguro médico', 'Comedor'], 'clima-4': '' } }
+    };
+
+    // Encuesta 2: publicada, sin respuestas todavía (sirve para probar recordatorios y CSV).
+    const servicio = {
+      id: 'servicio',
+      titulo: 'Evaluación de proveedores internos 2026',
+      descripcion: 'Refacciones y Administración nos dan servicio todos los días. Contanos cómo está siendo la atención.',
+      fechaLimite: fechaDias(12),
+      preguntas: [
+        { id: 'srv-1', tipo: 'escala', texto: '¿Cómo evaluás el tiempo de respuesta de Refacciones y Administración?', obligatoria: true, opciones: [], escalaMin: 'Muy lento', escalaMax: 'Muy rápido' },
+        { id: 'srv-2', tipo: 'texto', texto: '¿Qué podríamos mejorar en la atención interna?', obligatoria: false, opciones: [], escalaMin: '', escalaMax: '' }
+      ],
+      filtros: { sucursales: [], departamentos: ['Refacciones', 'Administración'], incluir: [], excluir: [], excluirJefes: false },
+      publicada: true,
+      publicadaEn: haceDias(1),
+      destinatarios: [],
+      envios: {},
+      respuestas: {}
+    };
+    servicio.destinatarios = calcularDestinatarios(servicio.filtros);
+    servicio.destinatarios.forEach(d => {
+      servicio.envios[d.empleadoId] = { estado: 'enviado', intentos: 1, fecha: haceDias(1) };
+    });
+    servicio.envios.M006 = { estado: 'fallido', intentos: 1, fecha: haceDias(1) };
+
+    // Borrador listo para recorrer el flujo crear -> asignar -> publicar.
+    const borrador = {
+      id: 'borrador',
+      titulo: 'Evaluación de la capacitación de octubre',
+      descripcion: 'Queremos saber cómo te pareció la capacitación de octubre y qué temas te gustaría profundizar.',
+      fechaLimite: fechaDias(15),
+      preguntas: [
+        { id: 'cap-1', tipo: 'unica', texto: '¿Asististe a la capacitación?', obligatoria: true, opciones: ['Sí', 'No', 'Parcialmente'], escalaMin: '', escalaMax: '' },
+        { id: 'cap-2', tipo: 'escala', texto: '¿Qué tan útil te resultó el contenido?', obligatoria: true, opciones: [], escalaMin: 'Nada útil', escalaMax: 'Muy útil' },
+        { id: 'cap-3', tipo: 'texto', texto: '¿Qué tema te gustaría profundizar?', obligatoria: false, opciones: [], escalaMin: '', escalaMax: '' }
+      ],
+      filtros: { sucursales: [], departamentos: [], incluir: [], excluir: [], excluirJefes: false },
+      publicada: false,
+      publicadaEn: null,
+      destinatarios: [],
+      envios: {},
+      respuestas: {}
+    };
+
+    return [clima, servicio, borrador];
+  }
+
+  function normalizar() {
+    if (!st.encuestas.length) st.encuestas = datosEjemplo();
+    if (!encuesta(st.editId)) {
+      const draft = st.encuestas.find(e => !e.publicada);
+      st.editId = (draft || st.encuestas[0]).id;
+    }
+    if (st.rol !== 'admin' && !porId(st.rol)) st.rol = 'admin';
+    if (st.rol === 'admin' && st.tab === 'responder') st.tab = 'crear';
+    if (st.rol !== 'admin' && st.tab !== 'responder') st.tab = 'responder';
+    const pubs = publicadas();
+    if (!pubs.some(e => e.id === st.panelId)) st.panelId = pubs.length ? pubs[0].id : '';
+    if (st.respAbierta && !encuesta(st.respAbierta)) st.respAbierta = '';
+  }
+
+
+  // ---------- Navegación y render ----------
+  const PESTANAS = [
+    { id: 'crear', texto: 'Crear encuesta', admin: true },
+    { id: 'asignar', texto: 'Asignar destinatarios', admin: true },
+    { id: 'publicar', texto: 'Publicar y notificar', admin: true },
+    { id: 'responder', texto: 'Mis encuestas', admin: false },
+    { id: 'panel', texto: 'Panel de participación', admin: true }
+  ];
+
+  function pendientesDe(empId) {
+    return st.encuestas.filter(e => e.publicada
+      && e.destinatarios.some(d => d.empleadoId === empId)
+      && !e.respuestas[empId]).length;
+  }
+
+  function tabsHTML() {
+    const visibles = PESTANAS.filter(p => p.admin === (st.rol === 'admin'));
+    return visibles.map(p => {
+      let extra = '';
+      if (p.id === 'responder' && st.rol !== 'admin') {
+        const n = pendientesDe(st.rol);
+        if (n) extra = ' <span class="pill">' + n + '</span>';
+      }
+      return `<button type="button" class="tab${st.tab === p.id ? ' activa' : ''}"`
+        + `${st.tab === p.id ? ' aria-current="page"' : ''}`
+        + ` onclick="App.ir('${p.id}')">${esc(p.texto)}${extra}</button>`;
+    }).join('');
+  }
+
+  function render() {
+    normalizar();
+    const tabs = document.getElementById('tabs');
+    const main = document.getElementById('main');
+    const rol = document.getElementById('rol');
+    if (tabs) tabs.innerHTML = tabsHTML();
+    if (main) main.innerHTML = vistaHTML();
+    if (rol && rol.value !== st.rol) rol.value = st.rol;
+    guardar();
+  }
+
+  function vistaHTML() {
+    switch (st.tab) {
+      case 'asignar': return vistaAsignar();
+      case 'publicar': return vistaPublicar();
+      case 'responder': return vistaResponder();
+      case 'panel': return vistaPanel();
+      default: return vistaCrear();
+    }
+  }
+
+  // ---------- 1. Crear encuesta ----------
+  function vistaCrear() {
+    const e = activa();
+    if (!e) return '<section class="card"><p class="vacio">No hay encuestas.</p></section>';
+
+    if (e.publicada) {
+      return `<section class="card">
+        <h2>Esta encuesta ya está publicada</h2>
+        <p class="muted">«${esc(e.titulo)}» se publicó el ${fecha(e.publicadaEn)} y su lista de destinatarios quedó congelada. Para cambiar las preguntas hay que crear una encuesta nueva.</p>
+        <div class="acciones">
+          <button class="btn" onclick="App.nuevaEncuesta()">Crear nueva encuesta</button>
+          <button class="btn sec" onclick="App.ir('publicar')">Ver envío y recordatorios</button>
+          <button class="btn sec" onclick="App.ir('panel')">Ver participación</button>
+        </div>
+      </section>`;
+    }
+
+    const probs = problemas(e);
+    return `<div class="cols">
+      <section class="card">
+        <h2>Datos generales</h2>
+        <div class="campo">
+          <label for="f-titulo">Título de la encuesta</label>
+          <input id="f-titulo" class="input" value="${esc(e.titulo)}" placeholder="Ej. Clima laboral Q1 2027"
+                 autocomplete="off" oninput="App.campo('titulo', this.value)">
+        </div>
+        <div class="campo">
+          <label for="f-desc">Descripción</label>
+          <textarea id="f-desc" class="input" rows="3" placeholder="Para qué sirve y qué se hará con los resultados"
+                    oninput="App.campo('descripcion', this.value)">${esc(e.descripcion)}</textarea>
+        </div>
+        <div class="campo">
+          <label for="f-limite">Fecha límite</label>
+          <input id="f-limite" type="date" class="input" value="${esc(e.fechaLimite)}"
+                 onchange="App.campo('fechaLimite', this.value)">
+        </div>
+
+        <h2 class="mt">Preguntas</h2>
+        ${e.preguntas.length ? e.preguntas.map((p, i) => preguntaHTML(p, i, e.preguntas.length)).join('')
+          : '<p class="vacio">Todavía no hay preguntas. Agregá la primera abajo.</p>'}
+
+        <div class="acciones">
+          <button class="btn sec" onclick="App.addPregunta('unica')">+ Opción única</button>
+          <button class="btn sec" onclick="App.addPregunta('multiple')">+ Opción múltiple</button>
+          <button class="btn sec" onclick="App.addPregunta('texto')">+ Texto libre</button>
+          <button class="btn sec" onclick="App.addPregunta('escala')">+ Escala 1 a 5</button>
+        </div>
+
+        ${probs.length ? `<div class="aviso warn"><strong>Para poder publicar falta:</strong>
+          <ul>${probs.map(p => '<li>' + esc(p) + '</li>').join('')}</ul></div>` : ''}
+
+        <div class="acciones fin">
+          <button class="btn" onclick="App.ir('asignar')">Continuar: asignar destinatarios</button>
+        </div>
+      </section>
+
+      <aside class="card">
+        <h2>Vista previa</h2>
+        <p class="muted chico" style="margin-bottom:10px">Así lo verá el empleado.</p>
+        <div id="preview">${previewHTML(e)}</div>
+      </aside>
+    </div>`;
+  }
+
+  const TIPOS = [['unica', 'Opción única'], ['multiple', 'Opción múltiple'], ['texto', 'Texto libre'], ['escala', 'Escala 1 a 5']];
+
+  function preguntaHTML(p, i, total) {
+    return `<fieldset class="q">
+      <legend class="sr-only">Pregunta ${i + 1}</legend>
+      <div class="q-head">
+        <span class="q-num" aria-hidden="true">${i + 1}</span>
+        <select class="input chico" aria-label="Tipo de la pregunta ${i + 1}" onchange="App.tipo(${i}, this.value)">
+          ${TIPOS.map(t => `<option value="${t[0]}"${p.tipo === t[0] ? ' selected' : ''}>${t[1]}</option>`).join('')}
+        </select>
+        <label class="chk"><input type="checkbox" ${p.obligatoria ? 'checked' : ''}
+          onchange="App.obligatoria(${i}, this.checked)"> Obligatoria</label>
+        <div class="q-acc">
+          <button type="button" class="icon" aria-label="Subir pregunta ${i + 1}" ${i === 0 ? 'disabled' : ''}
+            onclick="App.mover(${i}, -1)">↑</button>
+          <button type="button" class="icon" aria-label="Bajar pregunta ${i + 1}" ${i === total - 1 ? 'disabled' : ''}
+            onclick="App.mover(${i}, 1)">↓</button>
+          <button type="button" class="icon peligro" aria-label="Eliminar pregunta ${i + 1}"
+            onclick="App.eliminar(${i})">✕</button>
+        </div>
+      </div>
+
+      <div class="campo">
+        <label for="qp${i}">Enunciado</label>
+        <input id="qp${i}" class="input" value="${esc(p.texto)}" placeholder="Escribí la pregunta"
+               oninput="App.pregunta(${i}, 'texto', this.value)">
+      </div>
+
+      ${(p.tipo === 'unica' || p.tipo === 'multiple') ? opcionesHTML(p, i) : ''}
+
+      ${p.tipo === 'escala' ? `<div class="dos">
+        <div class="campo">
+          <label for="qe${i}a">Etiqueta del 1 (opcional)</label>
+          <input id="qe${i}a" class="input" value="${esc(p.escalaMin)}" placeholder="Nada"
+                 oninput="App.escala(${i}, 'escalaMin', this.value)">
+        </div>
+        <div class="campo">
+          <label for="qe${i}b">Etiqueta del 5 (opcional)</label>
+          <input id="qe${i}b" class="input" value="${esc(p.escalaMax)}" placeholder="Mucho"
+                 oninput="App.escala(${i}, 'escalaMax', this.value)">
+        </div>
+      </div>` : ''}
+    </fieldset>`;
+  }
+
+  function opcionesHTML(p, i) {
+    return `<div class="campo" role="group" aria-label="Opciones de la pregunta ${i + 1}">
+      <span class="label">Opciones</span>
+      ${p.opciones.map((o, j) => `<div class="op-fila">
+        <input class="input" aria-label="Opción ${j + 1} de la pregunta ${i + 1}" value="${esc(o)}"
+               placeholder="Opción ${j + 1}" oninput="App.opcion(${i}, ${j}, this.value)">
+        <button type="button" class="icon" aria-label="Quitar opción ${j + 1} de la pregunta ${i + 1}"
+          onclick="App.delOpcion(${i}, ${j})">✕</button>
+      </div>`).join('')}
+      <button type="button" class="btn-link" onclick="App.addOpcion(${i})">+ Agregar opción</button>
+    </div>`;
+  }
+
+  function extremosEscala(p) {
+    if (!p.escalaMin && !p.escalaMax) return '';
+    return `<div class="escala-ext"><span>1 ${esc(p.escalaMin)}</span><span>5 ${esc(p.escalaMax)}</span></div>`;
+  }
+
+  function previewHTML(e) {
+    return `<div class="prev">
+      <p class="prev-marca">Encuesta interna</p>
+      <h3>${esc(e.titulo || 'Título de la encuesta')}</h3>
+      ${e.descripcion ? `<p class="muted chico" style="margin-bottom:6px">${esc(e.descripcion)}</p>` : ''}
+      <p class="chico muted" style="margin-bottom:4px">Fecha límite: ${fechaLarga(e.fechaLimite)}</p>
+      ${e.preguntas.length
+        ? e.preguntas.map((p, i) => previewPregunta(p, i)).join('')
+        : '<p class="vacio">Todavía no hay preguntas.</p>'}
+    </div>`;
+  }
+
+  function previewPregunta(p, i) {
+    const req = p.obligatoria ? ' <span class="req" aria-label="obligatoria">*</span>' : '';
+    let control = '';
+    if (p.tipo === 'texto') {
+      control = '<textarea class="input" rows="2" disabled></textarea>';
+    } else if (p.tipo === 'escala') {
+      control = `<div class="escala">${[1, 2, 3, 4, 5].map(n =>
+        `<label class="escala-op"><input type="radio" disabled> <span>${n}</span></label>`).join('')}</div>`
+        + extremosEscala(p);
+    } else {
+      control = p.opciones.map(o => `<label class="opt">
+        <input type="${p.tipo === 'unica' ? 'radio' : 'checkbox'}" disabled>
+        <span>${esc(o || '(opción sin texto)')}</span></label>`).join('');
+    }
+    return `<div class="prev-q">
+      <p class="prev-enun">${i + 1}. ${esc(p.texto || '(sin enunciado)')}${req}</p>
+      ${control}
+    </div>`;
+  }
+
+  // ---------- 2. Asignar ----------
+  function vistaAsignar() {
+    const e = activa();
+    if (!e) return '';
+    const f = e.filtros;
+
+    if (e.publicada) {
+      const dest = e.destinatarios;
+      return `<section class="card">
+        <h2>Destinatarios congelados</h2>
+        <p class="muted">«${esc(e.titulo)}» ya está publicada: la lista quedó fija con ${dest.length} personas aunque la plantilla cambie.</p>
+        <p class="chico muted">${dest.filter(d => d.motivo === 'incluido a mano').length} incluidos a mano · ${dest.filter(d => d.motivo === 'por segmento').length} por segmento</p>
+        <div class="acciones">
+          <button class="btn" onclick="App.nuevaEncuesta()">Crear nueva encuesta</button>
+          <button class="btn sec" onclick="App.ir('publicar')">Ver envío</button>
+        </div>
+      </section>`;
+    }
+
+    const deps = departamentosDisponibles(f.sucursales);
+    const dest = calcularDestinatarios(f);
+
+    return `<div class="cols">
+      <div class="pila">
+        <section class="card">
+          <h2>Sucursales</h2>
+          <p class="muted chico" style="margin-bottom:8px">Sin sucursales marcadas se incluyen todas.</p>
+          <div class="chks">
+            ${SUCURSALES.map(s => `<label class="chk"><input type="checkbox" ${f.sucursales.includes(s) ? 'checked' : ''}
+              onchange="App.seg('sucursales', '${esc(s)}', this.checked)"> ${esc(s)}</label>`).join('')}
+          </div>
+        </section>
+
+        <section class="card">
+          <h2>Departamentos</h2>
+          <p class="muted chico" style="margin-bottom:8px">${f.sucursales.length
+            ? 'Sólo se ofrecen los departamentos que existen en las sucursales marcadas.'
+            : 'Sin departamentos marcados se incluyen todos.'}</p>
+          <div class="chks">
+            ${deps.map(d => `<label class="chk"><input type="checkbox" ${f.departamentos.includes(d) ? 'checked' : ''}
+              onchange="App.seg('departamentos', '${esc(d)}', this.checked)"> ${esc(d)}</label>`).join('')}
+          </div>
+          <p class="chico muted" style="margin-top:8px">${textoCombinaciones(f.sucursales)}</p>
+        </section>
+
+        <section class="card">
+          <h2>Ajustes por empleado</h2>
+          <div class="campo">
+            <label for="buscar">Buscar por nombre o número de empleado</label>
+            <input id="buscar" type="search" class="input" value="${esc(st.busqueda)}"
+                   placeholder="Ej. Laura o A002" autocomplete="off" oninput="App.buscar(this.value)">
+          </div>
+          <label class="chk"><input type="checkbox" ${f.excluirJefes ? 'checked' : ''}
+            onchange="App.jefes(this.checked)"> Excluir puestos de Director y Gerente</label>
+          <div id="lista-empleados" class="lista-emps">${empleadosAsignarHTML()}</div>
+        </section>
+      </div>
+
+      <aside class="card sticky">
+        <h2>Destinatarios <span class="pill" id="conteo-dest">${dest.length}</span></h2>
+        <p class="muted chico" style="margin-bottom:8px">La lista se congela al publicar.</p>
+        <div id="resumen-motivos">${motivosHTML(f)}</div>
+        <div id="lista-final">${listaFinalHTML(f)}</div>
+        <div class="acciones fin">
+          <button class="btn" onclick="App.ir('publicar')">Continuar: publicar</button>
+        </div>
+      </aside>
+    </div>`;
+  }
+
+  function motivosHTML(f) {
+    const dest = calcularDestinatarios(f);
+    const porSegmento = dest.filter(d => d.motivo === 'por segmento').length;
+    const aMano = dest.filter(d => d.motivo === 'incluido a mano').length;
+    const excluidos = EMPLEADOS.length - dest.length;
+    return `<p class="chico muted">${porSegmento} por segmento · ${aMano} incluidos a mano · ${excluidos} fuera</p>`;
+  }
+
+  function listaFinalHTML(f) {
+    const dest = calcularDestinatarios(f);
+    const fuera = EMPLEADOS.map(emp => ({ emp: emp, s: estadoEmpleado(emp, f) })).filter(x => !x.s.incluido);
+    return `<h3 class="chico" style="margin:10px 0 2px">Incluidos (${dest.length})</h3>
+      <ul class="lista">
+        ${dest.map(d => {
+          const emp = porId(d.empleadoId);
+          if (!emp) return '';
+          return `<li><span class="emp-datos"><strong>${esc(emp.nombre)}</strong>
+            <span class="muted chico">${esc(emp.id)} · ${esc(emp.sucursal)} · ${esc(emp.depto)}</span></span>
+            <span class="badge ${d.motivo === 'incluido a mano' ? 'ok' : ''}">${esc(d.motivo)}</span></li>`;
+        }).join('') || '<li class="vacio">Nadie seleccionado.</li>'}
+      </ul>
+      ${fuera.length ? `<details class="mas"><summary>Ver excluidos (${fuera.length})</summary>
+        <ul class="lista">${fuera.map(x => `<li>
+          <span class="emp-datos"><strong>${esc(x.emp.nombre)}</strong>
+          <span class="muted chico">${esc(x.emp.id)} · ${esc(x.emp.sucursal)} · ${esc(x.emp.depto)}</span></span>
+          <span class="badge">${esc(x.s.motivo)}</span></li>`).join('')}</ul>
+      </details>` : ''}`;
+  }
+
+  function empleadosAsignarHTML() {
+    const e = activa();
+    if (!e) return '';
+    const f = e.filtros;
+    const q = st.busqueda.trim().toLowerCase();
+    const lista = EMPLEADOS.filter(emp => !q
+      || emp.nombre.toLowerCase().includes(q)
+      || emp.id.toLowerCase().includes(q));
+    if (!lista.length) return '<p class="vacio" style="padding:12px 0">Sin resultados.</p>';
+
+    return `<ul class="lista">${lista.map(emp => {
+      const s = estadoEmpleado(emp, f);
+      const modo = f.incluir.includes(emp.id) ? 'incluir' : (f.excluir.includes(emp.id) ? 'excluir' : 'auto');
+      return `<li class="emp-fila">
+        <span class="emp-datos"><strong>${esc(emp.nombre)}</strong>
+          <span class="muted chico">${esc(emp.id)} · ${esc(emp.sucursal)} · ${esc(emp.depto)} · ${esc(emp.puesto)}</span></span>
+        <span class="seg" role="group" aria-label="Asignación de ${esc(emp.nombre)}">
+          ${[['auto', 'Auto'], ['incluir', 'Incluir'], ['excluir', 'Excluir']].map(m =>
+            `<button type="button" class="${modo === m[0] ? 'on' : ''}" aria-pressed="${modo === m[0]}"
+              onclick="App.asignar('${emp.id}', '${m[0]}')">${m[1]}</button>`).join('')}
+        </span>
+        <span class="badge ${s.incluido ? 'ok' : ''}">${esc(s.motivo)}</span>
+      </li>`;
+    }).join('')}</ul>`;
+  }
+
+  // ---------- 3. Publicar y notificar ----------
+  function vistaPublicar() {
+    const e = activa();
+    if (!e) return '';
+
+    const dest = e.publicada ? e.destinatarios : calcularDestinatarios(e.filtros);
+    const muestra = dest.length ? porId(dest[0].empleadoId) : null;
+    const probs = e.publicada ? [] : problemas(e);
+
+    return `<div class="cols">
+      <div class="pila">
+        <section class="card">
+          <h2>${e.publicada ? 'Envío de la encuesta' : 'Publicar y notificar'}</h2>
+          ${e.publicada ? `
+            <p class="chico">Publicada el ${fecha(e.publicadaEn)}. Destinatarios congelados: <strong>${e.destinatarios.length}</strong>.</p>
+            <div class="acciones">
+              <button class="btn sec" onclick="App.recordatorioTodos()">Reenviar recordatorio a quienes faltan</button>
+              <button class="btn sec" onclick="App.ir('panel')">Ver panel de participación</button>
+              <button class="btn-link" onclick="App.nuevaEncuesta()">Crear otra encuesta</button>
+            </div>`
+          : `
+            <p class="muted">Al publicar se congela la lista de destinatarios: si mañana cambia la plantilla, esta encuesta mantiene a las personas que ya recibieron el correo.</p>
+            <dl class="identidad">
+              <div><dt>Preguntas</dt><dd>${e.preguntas.length}</dd></div>
+              <div><dt>Destinatarios</dt><dd>${dest.length}</dd></div>
+              <div><dt>Fecha límite</dt><dd>${fechaLarga(e.fechaLimite)}</dd></div>
+            </dl>
+            ${probs.length ? `<div class="aviso warn"><strong>No se puede publicar todavía:</strong>
+              <ul>${probs.map(p => '<li>' + esc(p) + '</li>').join('')}</ul></div>` : ''}
+            <div class="acciones">
+              <button class="btn" ${probs.length ? 'disabled' : ''} onclick="App.publicar()">Publicar y notificar</button>
+              <button class="btn sec" onclick="App.ir('asignar')">Revisar destinatarios</button>
+            </div>`}
+        </section>
+        <section class="card" id="zona-cola">${colaHTML(e)}</section>
+      </div>
+
+      <aside class="card">
+        <h2>Vista previa del correo</h2>
+        ${correoHTML(e, muestra)}
+        <p class="chico muted" style="margin-top:8px">En el prototipo el enlace y el envío son simulados: no sale ningún correo.</p>
+      </aside>
+    </div>`;
+  }
+
+  function colaHTML(e) {
+    if (!e || !e.publicada) return '';
+    const items = e.destinatarios.map(d => ({ emp: porId(d.empleadoId), env: e.envios[d.empleadoId] || { estado: 'en cola', intentos: 0 } }));
+    const enviados = items.filter(i => i.env.estado === 'enviado').length;
+    const fallidos = items.filter(i => i.env.estado === 'fallido').length;
+    const enCola = items.length - enviados - fallidos;
+    const pct = items.length ? Math.round((enviados + fallidos) / items.length * 100) : 0;
+
+    return `<h2>Cola de envío</h2>
+      <p class="chico muted" aria-live="polite">${enviados} enviados · ${fallidos} fallidos · ${enCola} en cola</p>
+      <div class="prog"><span style="width:${pct}%"></span></div>
+      <ul class="lista" style="margin-top:8px">
+        ${items.map(i => {
+          if (!i.emp) return '';
+          const cls = i.env.estado === 'enviado' ? 'ok' : (i.env.estado === 'fallido' ? 'bad' : 'warn');
+          return `<li>
+            <span class="emp-datos"><strong>${esc(i.emp.nombre)}</strong>
+              <span class="muted chico">${esc(i.emp.email)}</span></span>
+            <span class="badge ${cls}">${esc(i.env.estado)}</span>
+            ${i.env.estado === 'fallido' ? `<button class="btn-link" onclick="App.recordatorio('${esc(e.id)}', '${i.emp.id}')">Reintentar</button>` : ''}
+          </li>`;
+        }).join('')}
+      </ul>`;
+  }
+
+  function correoHTML(e, emp) {
+    const nombre = emp ? emp.nombre.split(' ')[0] : 'Nombre';
+    return `<div class="correo">
+      <p class="chico muted"><strong>De:</strong> Encuestas internas &lt;encuestas@example.com&gt;</p>
+      <p class="chico"><strong>Asunto:</strong> ${esc(e.titulo || 'Encuesta interna')} — responde antes del ${fechaLarga(e.fechaLimite)}</p>
+      <hr>
+      <p>Hola ${esc(nombre)}:</p>
+      <p>Te invitamos a responder <strong>${esc(e.titulo || 'la encuesta interna')}</strong>. Son ${e.preguntas.length} preguntas y te va a llevar unos minutos.</p>
+      <p><span class="enlace-falso">Abrir encuesta</span></p>
+      <p>Fecha límite: <strong>${fechaLarga(e.fechaLimite)}</strong></p>
+      <p class="chico muted">Tus respuestas quedan asociadas a tu nombre: la encuesta es nominal.</p>
+    </div>`;
+  }
+
+  // ---------- 4. Responder (vista del empleado) ----------
+  function vistaResponder() {
+    if (st.rol === 'admin') {
+      return `<section class="card"><p class="muted">Elegí un empleado en «Ver como» para ver su vista.</p></section>`;
+    }
+    const emp = porId(st.rol);
+    if (!emp) return '';
+
+    const abierta = encuesta(st.respAbierta);
+    if (abierta && abierta.publicada && abierta.destinatarios.some(d => d.empleadoId === emp.id)) {
+      return responderForm(abierta, emp);
+    }
+
+    const mias = st.encuestas.filter(e => e.publicada && e.destinatarios.some(d => d.empleadoId === emp.id));
+    const pendientes = mias.filter(e => !e.respuestas[emp.id]);
+    const hechas = mias.filter(e => e.respuestas[emp.id]);
+
+    const tarjeta = (e, hecha) => `<li>
+      <span class="emp-datos"><strong>${esc(e.titulo)}</strong>
+        <span class="muted chico">${esc(e.descripcion)}</span>
+        <span class="muted chico">Fecha límite: ${fechaLarga(e.fechaLimite)}${hecha ? ' · Respondida el ' + fecha(e.respuestas[emp.id].fecha) : ''}</span></span>
+      <button class="btn ${hecha ? 'sec' : ''}" onclick="App.abrir('${esc(e.id)}')">${hecha ? 'Ver mis respuestas' : 'Responder'}</button>
+    </li>`;
+
+    return `<section class="card">
+      <h2>Encuestas de ${esc(emp.nombre)}</h2>
+      <dl class="identidad">
+        <div><dt>Número de empleado</dt><dd>${esc(emp.id)}</dd></div>
+        <div><dt>Sucursal</dt><dd>${esc(emp.sucursal)}</dd></div>
+        <div><dt>Departamento</dt><dd>${esc(emp.depto)}</dd></div>
+        <div><dt>Puesto</dt><dd>${esc(emp.puesto)}</dd></div>
+      </dl>
+      <h3 style="margin-top:14px">Pendientes (${pendientes.length})</h3>
+      <ul class="lista">${pendientes.map(e => tarjeta(e, false)).join('') || '<li class="vacio">No tenés encuestas pendientes.</li>'}</ul>
+      ${hechas.length ? `<h3 style="margin-top:16px">Respondidas (${hechas.length})</h3>
+        <ul class="lista">${hechas.map(e => tarjeta(e, true)).join('')}</ul>` : ''}
+    </section>`;
+  }
+
+  function responderForm(e, emp) {
+    const ya = e.respuestas[emp.id];
+    const cabecera = `<button type="button" class="btn-link" onclick="App.volver()">← Volver a mis encuestas</button>
+      <h2 style="margin-top:6px">${esc(e.titulo)}</h2>
+      <p class="muted chico">${esc(e.descripcion)}</p>
+      <dl class="identidad">
+        <div><dt>Nombre</dt><dd>${esc(emp.nombre)}</dd></div>
+        <div><dt>Número de empleado</dt><dd>${esc(emp.id)}</dd></div>
+        <div><dt>Sucursal</dt><dd>${esc(emp.sucursal)}</dd></div>
+        <div><dt>Departamento</dt><dd>${esc(emp.depto)}</dd></div>
+      </dl>
+      <p class="chico muted">Estos datos salen de la plantilla de empleados: no se preguntan.</p>`;
+
+    if (ya) {
+      return `<section class="card">${cabecera}
+        <div class="aviso ok">Ya respondiste esta encuesta el ${fecha(ya.fecha)}. No se puede responder dos veces.</div>
+        <div style="margin-top:14px">
+          ${e.preguntas.map((p, i) => `<div class="res-q">
+            <p class="prev-enun">${i + 1}. ${esc(p.texto)}</p>
+            <p>${mostrarRespuesta(p, ya.respuestas[p.id])}</p></div>`).join('')}
+        </div>
+      </section>`;
+    }
+
+    return `<section class="card">
+      ${cabecera}
+      <p class="chico muted" style="margin-top:10px">Fecha límite: <strong>${fechaLarga(e.fechaLimite)}</strong></p>
+      ${st.errores.length ? `<div class="aviso bad" role="alert">Faltan ${st.errores.length} preguntas obligatorias.</div>` : ''}
+      <form onsubmit="App.enviar(); return false" novalidate style="margin-top:8px">
+        ${e.preguntas.map((p, i) => campoRespuesta(p, i)).join('')}
+        <div class="acciones fin">
+          <button class="btn sec" type="button" onclick="App.volver()">Cancelar</button>
+          <button class="btn" type="submit">Enviar respuestas</button>
+        </div>
+      </form>
+    </section>`;
+  }
+
+  function campoRespuesta(p, i) {
+    const v = st.temp[p.id];
+    const err = st.errores.includes(p.id);
+    const name = 'r-' + p.id;
+    let control = '';
+
+    if (p.tipo === 'texto') {
+      control = `<textarea id="r-${p.id}" class="input" rows="3" ${err ? 'aria-invalid="true" aria-describedby="err-' + p.id + '"' : ''}
+        oninput="App.respuesta('${p.id}', this.value)">${esc(v || '')}</textarea>`;
+    } else if (p.tipo === 'escala') {
+      control = `<div class="escala" role="radiogroup" aria-label="${esc(p.texto)}">
+        ${[1, 2, 3, 4, 5].map(n => `<label class="escala-op">
+          <input type="radio" name="${name}" value="${n}" ${Number(v) === n ? 'checked' : ''}
+            onchange="App.respuesta('${p.id}', ${n}, true)"> <span>${n}</span></label>`).join('')}
+      </div>${extremosEscala(p)}`;
+    } else if (p.tipo === 'unica') {
+      control = p.opciones.map(o => `<label class="opt">
+        <input type="radio" name="${name}" value="${esc(o)}" ${v === o ? 'checked' : ''}
+          onchange="App.respuesta('${p.id}', this.value, true)"> <span>${esc(o)}</span></label>`).join('');
+    } else {
+      control = p.opciones.map(o => `<label class="opt">
+        <input type="checkbox" value="${esc(o)}" ${Array.isArray(v) && v.includes(o) ? 'checked' : ''}
+          onchange="App.multiple('${p.id}', this.value, this.checked)"> <span>${esc(o)}</span></label>`).join('');
+    }
+
+    return `<fieldset class="prev-q${err ? ' error' : ''}">
+      <legend>${i + 1}. ${esc(p.texto)}${p.obligatoria ? ' <span class="req" aria-label="obligatoria">*</span>' : ''}</legend>
+      ${control}
+      ${err ? `<p class="msg-error" id="err-${p.id}">Esta pregunta es obligatoria.</p>` : ''}
+    </fieldset>`;
+  }
+
+  function mostrarRespuesta(p, v) {
+    if (!respondida(v)) return '<span class="vacio">Sin respuesta</span>';
+    if (p.tipo === 'escala') return `<strong>${esc(v)}</strong> de 5`;
+    if (Array.isArray(v)) return esc(v.join(', '));
+    return esc(v);
+  }
+
+  // ---------- 5. Panel de participación ----------
+  function vistaPanel() {
+    const pubs = publicadas();
+    if (!pubs.length) return '<section class="card"><p class="vacio">Todavía no hay encuestas publicadas.</p></section>';
+
+    const e = encuesta(st.panelId) || pubs[0];
+    const dest = e.destinatarios;
+    const respondieron = dest.filter(d => e.respuestas[d.empleadoId]);
+    const faltan = dest.filter(d => !e.respuestas[d.empleadoId]);
+    const pct = dest.length ? Math.round(respondieron.length / dest.length * 100) : 0;
+    const filtro = emp => (!st.filtroSucursal || emp.sucursal === st.filtroSucursal)
+      && (!st.filtroDepto || emp.depto === st.filtroDepto);
+
+    return `<section class="card">
+        <div class="fila-encuesta">
+          <div class="campo">
+            <label for="sel-enc">Encuesta</label>
+            <select id="sel-enc" class="input" onchange="App.seleccionarPanel(this.value)">
+              ${pubs.map(p => `<option value="${esc(p.id)}"${p.id === e.id ? ' selected' : ''}>${esc(p.titulo)} — ${fechaLarga(p.fechaLimite)}</option>`).join('')}
+            </select>
+          </div>
+          <button class="btn sec" onclick="App.exportar()">Exportar CSV de faltantes</button>
+        </div>
+
+        <div class="stats">
+          <div class="stat"><span class="stat-num">${dest.length}</span><span class="muted chico">Asignados</span></div>
+          <div class="stat"><span class="stat-num ok">${respondieron.length}</span><span class="muted chico">Respondieron</span></div>
+          <div class="stat"><span class="stat-num warn">${faltan.length}</span><span class="muted chico">Faltan</span></div>
+          <div class="stat"><span class="stat-num">${pct}%</span><span class="muted chico">Participación</span></div>
+        </div>
+        <div class="prog grande" role="img" aria-label="Participación: ${pct} por ciento">
+          <span style="width:${pct}%"></span>
+        </div>
+      </section>
+
+      <div class="cols3" style="margin-top:16px">
+        <section class="card">${tablaDesglose(e, 'sucursal', 'Por sucursal')}</section>
+        <section class="card">${tablaDesglose(e, 'depto', 'Por departamento')}</section>
+      </div>
+
+      <section class="card" style="margin-top:16px">
+        <div class="filtros">
+          <div class="campo">
+            <label for="f-suc">Filtrar listas por sucursal</label>
+            <select id="f-suc" class="input" onchange="App.filtro('sucursal', this.value)">
+              <option value="">Todas</option>
+              ${SUCURSALES.map(s => `<option value="${esc(s)}"${st.filtroSucursal === s ? ' selected' : ''}>${esc(s)}</option>`).join('')}
+            </select>
+          </div>
+          <div class="campo">
+            <label for="f-dep">Filtrar listas por departamento</label>
+            <select id="f-dep" class="input" onchange="App.filtro('depto', this.value)">
+              <option value="">Todos</option>
+              ${DEPARTAMENTOS.map(d => `<option value="${esc(d)}"${st.filtroDepto === d ? ' selected' : ''}>${esc(d)}</option>`).join('')}
+            </select>
+          </div>
+        </div>
+
+        <div class="dos-listas">
+          <div>
+            <h3>Faltan (${e.destinatarios.filter(d => !e.respuestas[d.empleadoId] && porId(d.empleadoId) && filtro(porId(d.empleadoId))).length})</h3>
+            ${faltantesHTML(e, filtro)}
+          </div>
+          <div>
+            <h3>Respondieron (${e.destinatarios.filter(d => e.respuestas[d.empleadoId] && porId(d.empleadoId) && filtro(porId(d.empleadoId))).length})</h3>
+            ${respondieronHTML(e, filtro)}
+          </div>
+        </div>
+      </section>
+
+      <section class="card" style="margin-top:16px">
+        <h2>Resultados por pregunta</h2>
+        ${resultadosHTML(e)}
+      </section>`;
+  }
+
+  function tablaDesglose(enc, clave, titulo) {
+    const g = {};
+    enc.destinatarios.forEach(d => {
+      const emp = porId(d.empleadoId);
+      if (!emp) return;
+      const k = emp[clave];
+      g[k] = g[k] || { asig: 0, resp: 0 };
+      g[k].asig++;
+      if (enc.respuestas[emp.id]) g[k].resp++;
+    });
+    const filas = Object.keys(g).sort((a, b) => a.localeCompare(b, 'es'));
+    const tot = filas.reduce((a, k) => ({ asig: a.asig + g[k].asig, resp: a.resp + g[k].resp }), { asig: 0, resp: 0 });
+
+    return `<table class="tabla">
+      <caption>${esc(titulo)}</caption>
+      <thead><tr>
+        <th scope="col">${clave === 'sucursal' ? 'Sucursal' : 'Departamento'}</th>
+        <th scope="col" class="num">Asignados</th>
+        <th scope="col" class="num">Respondieron</th>
+        <th scope="col" class="num">Faltan</th>
+        <th scope="col" class="num">%</th>
+      </tr></thead>
+      <tbody>
+        ${filas.map(k => {
+          const p = g[k].asig ? Math.round(g[k].resp / g[k].asig * 100) : 0;
+          return `<tr>
+            <th scope="row" style="font-weight:600">${esc(k)}</th>
+            <td class="num">${g[k].asig}</td>
+            <td class="num">${g[k].resp}</td>
+            <td class="num">${g[k].asig - g[k].resp}</td>
+            <td class="num"><span class="mini" aria-hidden="true"><span style="width:${p}%"></span></span> ${p}%</td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+      <tfoot><tr>
+        <th scope="row">Total</th>
+        <td class="num">${tot.asig}</td>
+        <td class="num">${tot.resp}</td>
+        <td class="num">${tot.asig - tot.resp}</td>
+        <td class="num">${tot.asig ? Math.round(tot.resp / tot.asig * 100) : 0}%</td>
+      </tr></tfoot>
+    </table>`;
+  }
+
+  function faltantesHTML(e, filtro) {
+    const items = e.destinatarios
+      .filter(d => !e.respuestas[d.empleadoId])
+      .map(d => porId(d.empleadoId))
+      .filter(emp => emp && filtro(emp));
+
+    if (!items.length) return '<p class="vacio">Nadie pendiente con este filtro.</p>';
+
+    return `<ul class="lista">${items.map(emp => {
+      const env = e.envios[emp.id] || null;
+      const estado = env ? env.estado : 'sin envío';
+      const cls = estado === 'enviado' ? 'ok' : (estado === 'fallido' ? 'bad' : (estado === 'en cola' ? 'warn' : ''));
+      return `<li>
+        <span class="emp-datos"><strong>${esc(emp.nombre)}</strong>
+          <span class="muted chico">${esc(emp.id)} · ${esc(emp.sucursal)} · ${esc(emp.depto)} · ${esc(emp.email)}</span></span>
+        <span class="badge ${cls}">${esc(estado)}</span>
+        <button class="btn-link" ${estado === 'en cola' ? 'disabled' : ''}
+          onclick="App.recordatorio('${esc(e.id)}', '${emp.id}')">Enviar recordatorio</button>
+      </li>`;
+    }).join('')}</ul>`;
+  }
+
+  function respondieronHTML(e, filtro) {
+    const items = e.destinatarios
+      .filter(d => e.respuestas[d.empleadoId])
+      .map(d => ({ emp: porId(d.empleadoId), r: e.respuestas[d.empleadoId] }))
+      .filter(x => x.emp && filtro(x.emp));
+
+    if (!items.length) return '<p class="vacio">Todavía no respondió nadie con este filtro.</p>';
+
+    return `<ul class="lista">${items.map(x => `<li>
+      <span class="emp-datos"><strong>${esc(x.emp.nombre)}</strong>
+        <span class="muted chico">${esc(x.emp.id)} · ${esc(x.emp.sucursal)} · ${esc(x.emp.depto)}</span></span>
+      <span class="badge ok">${fecha(x.r.fecha)}</span>
+    </li>`).join('')}</ul>`;
+  }
+
+  function resultadosHTML(e) {
+    const total = Object.keys(e.respuestas).length;
+    if (!total) return '<p class="vacio">Todavía no hay respuestas.</p>';
+
+    return e.preguntas.map((p, i) => `<div class="res-q">
+      <h3>${i + 1}. ${esc(p.texto)}</h3>
+      ${resultadoPregunta(p, e)}
+    </div>`).join('');
+  }
+
+  function resultadoPregunta(p, e) {
+    const filas = Object.keys(e.respuestas).map(id => ({ id: id, valor: e.respuestas[id].respuestas[p.id] }));
+
+    if (p.tipo === 'texto') {
+      const textos = filas.filter(f => respondida(f.valor));
+      if (!textos.length) return '<p class="vacio">Sin respuestas de texto.</p>';
+      return `<ul class="lista">${textos.map(f => `<li>
+        <span><span class="muted chico">${esc(nombreDe(f.id))}</span><br>${esc(f.valor)}</span>
+      </li>`).join('')}</ul>`;
+    }
+
+    if (p.tipo === 'escala') {
+      const vals = filas.map(f => Number(f.valor)).filter(n => n >= 1 && n <= 5);
+      if (!vals.length) return '<p class="vacio">Sin respuestas.</p>';
+      const prom = vals.reduce((a, b) => a + b, 0) / vals.length;
+      return `<p class="chico" style="margin-bottom:8px">Promedio <strong>${prom.toFixed(2)}</strong> sobre 5 · ${vals.length} respuestas</p>
+        ${[1, 2, 3, 4, 5].map(n => {
+          const c = vals.filter(v => v === n).length;
+          const pct = Math.round(c / vals.length * 100);
+          return `<div class="barra-fila"><span>${n} ${n === 1 ? esc(p.escalaMin) : (n === 5 ? esc(p.escalaMax) : '')}</span>
+            <span class="barra"><span style="width:${pct}%"></span></span><span class="num">${c}</span></div>`;
+        }).join('')}`;
+    }
+
+    const conteo = {};
+    p.opciones.forEach(o => { conteo[o] = 0; });
+    let respondidas = 0;
+    filas.forEach(f => {
+      const arr = Array.isArray(f.valor) ? f.valor : (respondida(f.valor) ? [f.valor] : []);
+      if (arr.length) respondidas++;
+      arr.forEach(v => { if (conteo[v] !== undefined) conteo[v]++; });
+    });
+    if (!respondidas) return '<p class="vacio">Sin respuestas.</p>';
+
+    return p.opciones.map(o => {
+      const c = conteo[o];
+      const pct = Math.round(c / respondidas * 100);
+      return `<div class="barra-fila"><span>${esc(o)}</span>
+        <span class="barra"><span style="width:${pct}%"></span></span><span class="num">${c}</span></div>`;
+    }).join('') + `<p class="chico muted" style="margin-top:6px">${respondidas} personas respondieron esta pregunta.</p>`;
+  }
+
+
+  // ---------- Acciones ----------
+  function actualizarPreview() {
+    const e = activa();
+    const pv = document.getElementById('preview');
+    if (e && pv) pv.innerHTML = previewHTML(e);
+  }
+
+  let colaTimer = null;
+
+  const hayCola = () => st.encuestas.some(e => e.envios
+    && Object.keys(e.envios).some(id => e.envios[id].estado === 'en cola'));
+
+  function refrescarZonas() {
+    if (st.tab === 'publicar') {
+      const el = document.getElementById('zona-cola');
+      if (el) el.innerHTML = colaHTML(activa());
+    } else if (st.tab === 'panel') {
+      render();
+    }
+  }
+
+  // Simulación del envío: dos correos por latido, con un fallo deterministico
+  // cada tanto para poder mostrar el estado y el reintento.
+  function arrancarCola() {
+    if (colaTimer || !hayCola()) return;
+    colaTimer = setInterval(() => {
+      let procesados = 0;
+      st.encuestas.forEach(enc => {
+        if (!enc.envios) return;
+        Object.keys(enc.envios).forEach(id => {
+          if (procesados >= 2) return;
+          const env = enc.envios[id];
+          if (env.estado !== 'en cola') return;
+          env.intentos = (env.intentos || 0) + 1;
+          env.estado = ((hash(id) + env.intentos * 7) % 17 === 0) ? 'fallido' : 'enviado';
+          env.fecha = ahoraISO();
+          procesados++;
+        });
+      });
+      guardar();
+      refrescarZonas();
+      if (!hayCola()) {
+        clearInterval(colaTimer);
+        colaTimer = null;
+        refrescarZonas();
+      }
+    }, 420);
+  }
+
+  const App = {
+    ir(tab) {
+      st.tab = tab;
+      st.respAbierta = '';
+      st.temp = {};
+      st.errores = [];
+      render();
+      const main = document.getElementById('main');
+      if (main) main.focus({ preventScroll: true });
+    },
+
+    cambiarRol(valor) {
+      st.rol = valor;
+      st.tab = valor === 'admin' ? 'crear' : 'responder';
+      st.respAbierta = '';
+      st.temp = {};
+      st.errores = [];
+      render();
+    },
+
+    nuevaEncuesta() {
+      const e = {
+        id: nuevoId(),
+        titulo: '',
+        descripcion: '',
+        fechaLimite: fechaDias(14),
+        preguntas: [],
+        filtros: { sucursales: [], departamentos: [], incluir: [], excluir: [], excluirJefes: false },
+        publicada: false,
+        publicadaEn: null,
+        destinatarios: [],
+        envios: {},
+        respuestas: {}
+      };
+      st.encuestas.unshift(e);
+      st.editId = e.id;
+      st.tab = 'crear';
+      st.busqueda = '';
+      render();
+      toast('Encuesta nueva. Completá el título y las preguntas.');
+    },
+
+    // --- constructor ---
+    campo(campo, valor) {
+      const e = activa(); if (!e) return;
+      e[campo] = valor;
+      guardar();
+      actualizarPreview();
+    },
+
+    pregunta(i, campo, valor) {
+      const e = activa(); if (!e || !e.preguntas[i]) return;
+      e.preguntas[i][campo] = valor;
+      guardar();
+      actualizarPreview();
+    },
+
+    opcion(i, j, valor) {
+      const e = activa(); if (!e || !e.preguntas[i]) return;
+      e.preguntas[i].opciones[j] = valor;
+      guardar();
+      actualizarPreview();
+    },
+
+    escala(i, campo, valor) {
+      const e = activa(); if (!e || !e.preguntas[i]) return;
+      e.preguntas[i][campo] = valor;
+      guardar();
+      actualizarPreview();
+    },
+
+    tipo(i, valor) {
+      const e = activa(); if (!e || !e.preguntas[i]) return;
+      const p = e.preguntas[i];
+      p.tipo = valor;
+      if ((valor === 'unica' || valor === 'multiple') && p.opciones.length < 2) p.opciones = ['', ''];
+      guardar(); render();
+    },
+
+    obligatoria(i, valor) {
+      const e = activa(); if (!e || !e.preguntas[i]) return;
+      e.preguntas[i].obligatoria = valor;
+      guardar();
+      actualizarPreview();
+    },
+
+    mover(i, delta) {
+      const e = activa(); if (!e) return;
+      const j = i + delta;
+      if (j < 0 || j >= e.preguntas.length) return;
+      const tmp = e.preguntas[i];
+      e.preguntas[i] = e.preguntas[j];
+      e.preguntas[j] = tmp;
+      guardar(); render();
+    },
+
+    eliminar(i) {
+      const e = activa(); if (!e) return;
+      e.preguntas.splice(i, 1);
+      guardar(); render();
+    },
+
+    addPregunta(tipo) {
+      const e = activa(); if (!e) return;
+      e.preguntas.push(nuevaPregunta(tipo));
+      guardar(); render();
+      const ultima = document.getElementById('qp' + (e.preguntas.length - 1));
+      if (ultima) ultima.focus();
+    },
+
+    addOpcion(i) {
+      const e = activa(); if (!e || !e.preguntas[i]) return;
+      e.preguntas[i].opciones.push('');
+      guardar(); render();
+    },
+
+    delOpcion(i, j) {
+      const e = activa(); if (!e || !e.preguntas[i]) return;
+      e.preguntas[i].opciones.splice(j, 1);
+      guardar(); render();
+    },
+
+    // --- asignación ---
+    seg(tipo, valor, marcado) {
+      const e = activa(); if (!e) return;
+      const f = e.filtros;
+      const arr = f[tipo];
+      const i = arr.indexOf(valor);
+      if (marcado && i < 0) arr.push(valor);
+      if (!marcado && i >= 0) arr.splice(i, 1);
+      // Al cambiar sucursales se descartan los departamentos que ya no existen ahí.
+      if (tipo === 'sucursales') {
+        const disponibles = departamentosDisponibles(f.sucursales);
+        f.departamentos = f.departamentos.filter(d => disponibles.includes(d));
+      }
+      guardar(); render();
+    },
+
+    asignar(id, modo) {
+      const e = activa(); if (!e) return;
+      const f = e.filtros;
+      f.incluir = f.incluir.filter(x => x !== id);
+      f.excluir = f.excluir.filter(x => x !== id);
+      if (modo === 'incluir') f.incluir.push(id);
+      if (modo === 'excluir') f.excluir.push(id);
+      guardar(); render();
+    },
+
+    jefes(valor) {
+      const e = activa(); if (!e) return;
+      e.filtros.excluirJefes = valor;
+      guardar(); render();
+    },
+
+    buscar(valor) {
+      st.busqueda = valor;
+      guardar();
+      const el = document.getElementById('lista-empleados');
+      if (el) el.innerHTML = empleadosAsignarHTML();
+    },
+
+    // --- publicación y envío ---
+    publicar() {
+      const e = activa(); if (!e || e.publicada) return;
+      if (problemas(e).length) { toast('Revisá los datos antes de publicar.'); render(); return; }
+      e.destinatarios = calcularDestinatarios(e.filtros);
+      e.publicada = true;
+      e.publicadaEn = ahoraISO();
+      e.envios = {};
+      e.destinatarios.forEach(d => { e.envios[d.empleadoId] = { estado: 'en cola', intentos: 0, fecha: null }; });
+      guardar();
+      arrancarCola();
+      render();
+      toast('Encuesta publicada: ' + e.destinatarios.length + ' correos en cola.');
+    },
+
+    recordatorioTodos() {
+      const e = activa(); if (!e || !e.publicada) return;
+      let n = 0;
+      e.destinatarios.forEach(d => {
+        if (e.respuestas[d.empleadoId]) return;
+        const prev = e.envios[d.empleadoId] || { intentos: 0 };
+        e.envios[d.empleadoId] = { estado: 'en cola', intentos: prev.intentos || 0, fecha: null };
+        n++;
+      });
+      if (!n) { toast('Ya respondieron todos: no hay recordatorios que enviar.'); return; }
+      guardar(); arrancarCola(); render();
+      toast(n + ' recordatorios en cola.');
+    },
+
+    recordatorio(encId, empId) {
+      const e = encuesta(encId); if (!e) return;
+      if (e.respuestas[empId]) { toast('Esa persona ya respondió.'); return; }
+      const prev = e.envios[empId] || { intentos: 0 };
+      e.envios[empId] = { estado: 'en cola', intentos: prev.intentos || 0, fecha: null };
+      guardar(); arrancarCola(); render();
+      toast('Recordatorio en cola para ' + nombreDe(empId) + '.');
+    },
+
+    // --- responder ---
+    abrir(id) {
+      const e = encuesta(id); if (!e) return;
+      st.respAbierta = id;
+      st.temp = {};
+      st.errores = [];
+      guardar(); render();
+    },
+
+    volver() {
+      st.respAbierta = '';
+      st.temp = {};
+      st.errores = [];
+      guardar(); render();
+    },
+
+    respuesta(qid, valor, refrescar) {
+      st.temp[qid] = valor;
+      const habiaError = st.errores.includes(qid);
+      st.errores = st.errores.filter(x => x !== qid);
+      guardar();
+      if (refrescar && habiaError) render();
+    },
+
+    multiple(qid, opcion, marcado) {
+      const arr = (st.temp[qid] || []).slice();
+      const i = arr.indexOf(opcion);
+      if (marcado && i < 0) arr.push(opcion);
+      if (!marcado && i >= 0) arr.splice(i, 1);
+      st.temp[qid] = arr;
+      const habiaError = st.errores.includes(qid);
+      st.errores = st.errores.filter(x => x !== qid);
+      guardar();
+      if (habiaError) render();
+    },
+
+    enviar() {
+      const e = encuesta(st.respAbierta); if (!e || !e.publicada) return;
+      const emp = porId(st.rol); if (!emp) return;
+      if (e.respuestas[emp.id]) { toast('Ya respondiste esta encuesta.'); return; }
+
+      const respuestas = {};
+      const faltan = [];
+      e.preguntas.forEach(p => {
+        const v = st.temp[p.id];
+        if (respondida(v)) respuestas[p.id] = v;
+        else if (p.obligatoria) faltan.push(p.id);
+      });
+
+      if (faltan.length) {
+        st.errores = faltan;
+        guardar(); render();
+        toast('Faltan ' + faltan.length + ' preguntas obligatorias.');
+        const primero = document.getElementById('err-' + faltan[0]);
+        if (primero) primero.scrollIntoView({ block: 'center' });
+        return;
+      }
+
+      e.respuestas[emp.id] = { fecha: ahoraISO(), respuestas: respuestas };
+      st.temp = {};
+      st.errores = [];
+      st.respAbierta = '';
+      guardar(); render();
+      toast('Respuestas enviadas. Quedó registrado tu nombre y la fecha.');
+    },
+
+    // --- panel ---
+    seleccionarPanel(id) {
+      st.panelId = id;
+      render();
+    },
+
+    filtro(campo, valor) {
+      if (campo === 'sucursal') st.filtroSucursal = valor;
+      else st.filtroDepto = valor;
+      render();
+    },
+
+    exportar() {
+      const e = encuesta(st.panelId) || publicadas()[0];
+      if (!e) return;
+      const faltan = e.destinatarios
+        .filter(d => !e.respuestas[d.empleadoId])
+        .map(d => porId(d.empleadoId))
+        .filter(Boolean);
+
+      const filas = [['Número de empleado', 'Nombre', 'Sucursal', 'Departamento', 'Puesto', 'Correo', 'Fecha límite', 'Último envío']];
+      faltan.forEach(emp => {
+        const env = e.envios[emp.id];
+        filas.push([emp.id, emp.nombre, emp.sucursal, emp.depto, emp.puesto, emp.email, e.fechaLimite, env ? env.estado : 'sin envío']);
+      });
+
+      const csv = '\uFEFF' + filas.map(f => f.map(c => '"' + String(c == null ? '' : c).replace(/"/g, '""') + '"').join(',')).join('\r\n');
+      const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'faltantes-' + slug(e.titulo) + '.csv';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+      toast('CSV descargado con ' + faltan.length + ' faltantes.');
+    },
+
+    reiniciar() {
+      if (!window.confirm('¿Reiniciar los datos de ejemplo? Se pierden las encuestas y respuestas creadas en este prototipo.')) return;
+      try { localStorage.removeItem(CLAVE); } catch (e) { /* sin storage: igual reiniciamos en memoria */ }
+      st.encuestas = datosEjemplo();
+      st.rol = 'admin';
+      st.tab = 'crear';
+      st.editId = 'borrador';
+      st.panelId = 'clima';
+      st.respAbierta = '';
+      st.temp = {};
+      st.errores = [];
+      st.busqueda = '';
+      st.filtroSucursal = '';
+      st.filtroDepto = '';
+      const rol = document.getElementById('rol');
+      if (rol) rol.value = 'admin';
+      render();
+      toast('Datos de ejemplo reiniciados.');
+    }
+  };
+
+  // ---------- Arranque ----------
+  function iniciar() {
+    const guardado = cargar();
+    if (guardado && Array.isArray(guardado.encuestas) && guardado.encuestas.length) {
+      Object.assign(st, guardado);
+    }
+    // Estructura por si el estado guardado viene de una versión anterior.
+    st.encuestas.forEach(e => {
+      e.filtros = Object.assign({ sucursales: [], departamentos: [], incluir: [], excluir: [], excluirJefes: false }, e.filtros || {});
+      e.envios = e.envios || {};
+      e.respuestas = e.respuestas || {};
+      e.preguntas = e.preguntas || [];
+      e.destinatarios = e.destinatarios || [];
+    });
+    if (!st.encuestas.length) st.encuestas = datosEjemplo();
+    if (!st.editId) st.editId = 'borrador';
+    if (!st.panelId) st.panelId = 'clima';
+
+    const rol = document.getElementById('rol');
+    if (rol) {
+      rol.innerHTML = '<option value="admin">Administrador de encuestas</option>'
+        + SUCURSALES.map(s => '<optgroup label="' + esc(s) + '">'
+          + EMPLEADOS.filter(e => e.sucursal === s)
+            .map(e => '<option value="' + e.id + '">Empleado · ' + esc(e.nombre) + '</option>').join('')
+          + '</optgroup>').join('');
+    }
+
+    normalizar();
+    render();
+    arrancarCola();
+  }
+
+  window.App = App;
+  iniciar();
+})();
+</script>
+</body>
+</html>
